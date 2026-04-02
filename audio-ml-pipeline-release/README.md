@@ -19,14 +19,6 @@ per call, and exposes every parameter so you can tune it to your environment.
 
 ---
 
-## Demo
-
-> *Add a before/after audio clip or screen recording here.*
-> Record 30 seconds: keyboard typing + speech with pipeline off, then on.
-> This is the single most important thing you can add to this README.
-
----
-
 ## How It Works
 
 ```
