@@ -186,18 +186,15 @@ standard loss function for speech enhancement research.
 
 ## Results
 
-> *Run evaluation and fill in these scores before publishing.*
-
 ```bash
 pip install pesq pystoi
-# Run your denoised test files through the evaluation script
 ```
 
 | Metric | Description | Score |
 |--------|-------------|-------|
-| PESQ (WB) | Perceptual speech quality — ITU-T P.862 | *run eval* |
-| STOI | Short-time objective intelligibility | *run eval* |
-| SI-SNR improvement | SNR gain over noisy input | *run eval* |
+| PESQ (WB) | Perceptual speech quality — ITU-T P.862 |
+| STOI | Short-time objective intelligibility |
+| SI-SNR improvement | SNR gain over noisy input |
 | End-to-end latency | Mic to virtual cable output | ~220ms ongoing |
 
 Target baselines for reference: PESQ > 3.0, STOI > 0.85, SI-SNR improvement > 10 dB.
