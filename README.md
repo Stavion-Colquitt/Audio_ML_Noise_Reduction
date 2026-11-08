@@ -196,9 +196,9 @@ left out, so the numbers describe the models themselves.
 | SI-SDR (dB) | 8.45 | 3.42 (-5.03) | **13.36 (+4.91)** |
 | STOI | 0.921 | 0.798 (-0.123) | **0.869 (-0.052)** |
 | PESQ (WB, ITU-T P.862.2) | 1.97 | 1.58 (-0.39) | **1.65 (-0.32)** |
-| DNSMOS P.835 SIG (speech) | 3.32 | 3.11 (-0.21) | pending |
-| DNSMOS P.835 BAK (background) | 3.11 | 3.48 (+0.37) | pending |
-| DNSMOS P.835 OVRL (overall) | 2.68 | 2.63 (-0.05) | pending |
+| DNSMOS P.835 SIG (speech) | 3.32 | 3.11 (-0.21) | 3.25 (-0.07) |
+| DNSMOS P.835 BAK (background) | 3.11 | 3.48 (+0.37) | 3.18 (+0.07) |
+| DNSMOS P.835 OVRL (overall) | 2.68 | 2.63 (-0.05) | 2.63 (-0.05) |
 | Real-time factor (desktop CPU, ONNX Runtime) | | 0.077 (13x real time) | **0.063 (16x real time)** |
 
 Algorithmic latency for both: 200 ms analysis window, 100 ms hop.
