@@ -186,18 +186,40 @@ standard loss function for speech enhancement research.
 
 ## Results
 
+Evaluated on the **VoiceBank+DEMAND test set** (824 utterances, 16 kHz), the standard speech-enhancement
+benchmark. The model never saw it in training (it was trained on DNS Challenge 4 only). Enhancement runs exactly
+the live pipeline's model stage: 200 ms windows, 100 ms hop, Hann overlap-add, 12% spectral floor. The EQ, gate
+and output gain are left out, so the numbers describe the model itself.
+
+| Metric | Noisy input | Enhanced | Change |
+|--------|-------------|----------|--------|
+| PESQ (WB, ITU-T P.862.2) | 1.97 | 1.58 | -0.39 |
+| STOI | 0.921 | 0.798 | -0.123 |
+| SI-SDR (dB) | 8.45 | 3.42 | -5.03 |
+| DNSMOS P.835 SIG (speech) | 3.32 | 3.11 | -0.21 |
+| DNSMOS P.835 BAK (background) | 3.11 | 3.48 | **+0.37** |
+| DNSMOS P.835 OVRL (overall) | 2.68 | 2.63 | -0.05 |
+
+**Speed:** real-time factor 0.077 on a desktop CPU with ONNX Runtime (about 13x faster than real time).
+**Algorithmic latency:** 200 ms analysis window, 100 ms hop.
+
+**What this says.** The current model clearly quiets the background (DNSMOS BAK +0.37) but distorts the
+speech while doing it, which the reference-based metrics (PESQ, STOI, SI-SDR) penalise. Likely causes:
+
+- Trained on heavy noise (-5 to +20 dB SNR), so it over-suppresses the milder noise in this benchmark.
+- Magnitude-only masking with the noisy phase reused in reconstruction.
+- Inference rescales each window by its 99th-percentile log magnitude, which the model never saw in training.
+
+These are the targets for the next model version (see Future Work).
+
+**Reproduce:**
 ```bash
 pip install pesq pystoi
+python eval_vbdemand.py <clean_testset_wav dir> <noisy_testset_wav dir>   # PESQ / STOI / SI-SDR / speed
+python eval_dnsmos.py <noisy_testset_wav dir> 824                          # DNSMOS (needs microsoft/DNS-Challenge DNSMOS models in ./DNS-Challenge/DNSMOS)
+python eval_variants.py <clean dir> <noisy dir> 20                         # sanity checks (identity pass-through, variants)
 ```
-
-| Metric | Description | Score |
-|--------|-------------|-------|
-| PESQ (WB) | Perceptual speech quality — ITU-T P.862 |
-| STOI | Short-time objective intelligibility |
-| SI-SNR improvement | SNR gain over noisy input |
-| End-to-end latency | Mic to virtual cable output | ~220ms ongoing |
-
-Target baselines for reference: PESQ > 3.0, STOI > 0.85, SI-SNR improvement > 10 dB.
+The test set is on [Edinburgh DataShare](https://datashare.ed.ac.uk/handle/10283/2791).
 
 ---
 
@@ -303,7 +325,8 @@ minimum wait.
 
 ## Future Work
 
-- [ ] Run PESQ/STOI/DNSMOS evaluation and publish scores
+- [x] Run PESQ/STOI/DNSMOS evaluation and publish scores
+- [ ] Retrain with milder-SNR mixtures and inference-matched normalisation to stop over-suppression
 - [ ] Fine-tune on domain-specific conference room noise
 - [ ] Complex-mask U-Net (DCUNet) to address phase reuse muffling
 - [ ] Voice Activity Detection (VAD) to replace RMS-based gate
@@ -325,6 +348,9 @@ minimum wait.
 | `export_model.py` | PyTorch → ONNX export |
 | `download_dataset.py` | DNS Challenge 4 subset downloader |
 | `list_devices.py` | List all audio device indexes |
+| `eval_vbdemand.py` | PESQ / STOI / SI-SDR and real-time factor on VoiceBank+DEMAND |
+| `eval_dnsmos.py` | DNSMOS P.835 (SIG / BAK / OVRL), no clean reference needed |
+| `eval_variants.py` | Evaluation sanity checks (pass-through, inference variants) |
 | `start_pipeline.bat` | Windows launcher |
 
 ---
