@@ -70,8 +70,10 @@ Set `MIC_INDEX` and `CABLE_INDEX` at the top of `ml_denoiser_pipeline.py`.
 **4. Get the model**
 
 Option A — Download pretrained weights *(recommended)*:
-Download `denoiser.onnx` from [**Releases**](../../releases) and place it in `audio-ml-pipeline-release/`, next to
-`ml_denoiser_pipeline.py`.
+- **v2 (recommended):** download `denoiser_v2.onnx` from [**Release V2.0**](../../releases/tag/V2.0) and place it in `v2/`, next to
+  `ml_denoiser_pipeline.py`. Run the pipeline from `v2/`.
+- **v1:** download `denoiser.onnx` from [**Release V1.0**](../../releases/tag/V1.0) and place it in `audio-ml-pipeline-release/`, next to
+  `ml_denoiser_pipeline.py`.
 
 Option B — Train from scratch:
 ```bash
