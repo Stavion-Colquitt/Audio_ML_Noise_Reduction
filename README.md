@@ -72,6 +72,8 @@ Set `MIC_INDEX` and `CABLE_INDEX` at the top of `ml_denoiser_pipeline.py`.
 Option A — Download pretrained weights *(recommended)*:
 - **v2 (recommended):** download `denoiser_v2.onnx` from [**Release V2.0**](../../releases/tag/V2.0) and place it in `v2/`, next to
   `ml_denoiser_pipeline.py`. Run the pipeline from `v2/`.
+- **v3 (experimental):** download `denoiser_v3.onnx` from [**Release V3.0**](../../releases/tag/V3.0) and place it in `v3/`.
+  Run with `V3_PHASE=noisy` for the better-scoring mode (see Results).
 - **v1:** download `denoiser.onnx` from [**Release V1.0**](../../releases/tag/V1.0) and place it in `audio-ml-pipeline-release/`, next to
   `ml_denoiser_pipeline.py`.
 
@@ -237,6 +239,35 @@ Run them from `audio-ml-pipeline-release/` for v1 or `v2/` for v2. The test set 
 
 ---
 
+### v3: complex mask, a negative result (code in [`v3/`](v3/))
+
+**Hypothesis:** v2 is still below the noisy input on PESQ because it reuses the noisy phase. v3 tests that by
+predicting a **complex ratio mask** (tanh-bounded real and imaginary parts) from three input channels
+(`log1p|S|`, `|S|^0.3 cos phase`, `|S|^0.3 sin phase`). Everything else is identical to v2 (data, loss, 200 ms
+segments, 60 epochs, model size ~3.8M parameters), so the comparison isolates the mask type.
+
+| Metric | Noisy input | v2 | v3 (model phase) | v3 (noisy phase) |
+|--------|-------------|----|------------------|------------------|
+| SI-SDR (dB) | 8.45 | **13.36** | 13.02 | 13.17 |
+| STOI | 0.921 | 0.869 | 0.868 | **0.874** |
+| PESQ (WB) | 1.97 | 1.65 | 1.61 | **1.70** |
+| DNSMOS SIG | 3.32 | 3.25 | 3.26 | 3.27 |
+| DNSMOS BAK | 3.11 | 3.18 | 3.07 | 3.14 |
+| DNSMOS OVRL | 2.68 | 2.63 | 2.58 | 2.62 |
+
+"v3 (noisy phase)" uses only the magnitude of v3's mask and keeps the noisy phase (`V3_PHASE=noisy`).
+
+**What v3 says:**
+- **The phase hypothesis did not hold.** Applying v3's own phase scores *worse* than discarding it and keeping the
+  noisy phase (PESQ 1.61 vs 1.70). The model learned a better magnitude mask than v2, but its phase estimate hurts.
+- **The 200 ms windowing is not the cause either.** Running the complex mask over whole utterances in one pass gives
+  the same PESQ as the windowed pipeline (diagnostic on 150 files: `v3/eval_v3_variants.py`).
+- **Every version is still below the noisy input on PESQ.** The remaining suspects are the training objective
+  (SI-SDR + spectral loss rewards removing noise, not natural-sounding speech) and the short 200 ms context.
+  Those are the next experiments (see Future Work).
+
+Parity check (numpy/ONNX path vs PyTorch training path): 133.5 dB.
+
 ## Latency
 
 **Ongoing algorithmic latency: ~220ms**
@@ -341,7 +372,8 @@ minimum wait.
 
 - [x] Run PESQ/STOI/DNSMOS evaluation and publish scores
 - [x] v2: waveform loss, linear-magnitude mask, milder-SNR mixtures, inference-matched training
-- [ ] v3: complex mask (phase) and a full-length dev set to lift PESQ above the noisy input
+- [x] v3: complex mask (phase): did not lift PESQ; v3's phase estimate hurts, its magnitude helps (see Results)
+- [ ] v4: a perceptual training objective and longer context (GRU) to lift PESQ above the noisy input
 - [ ] Fine-tune on domain-specific conference room noise
 - [ ] Complex-mask U-Net (DCUNet) to address phase reuse muffling
 - [ ] Voice Activity Detection (VAD) to replace RMS-based gate
