@@ -70,7 +70,10 @@ Set `MIC_INDEX` and `CABLE_INDEX` at the top of `ml_denoiser_pipeline.py`.
 **4. Get the model**
 
 Option A — Download pretrained weights *(recommended)*:
-- **v2 (recommended):** download `denoiser_v2.onnx` from [**Release V2.0**](../../releases/tag/V2.0) and place it in `v2/`, next to
+- **v4 (best quality, 10 ms streaming):** download `call_denoiser_v4.onnx` from [**Release V4.0**](../../releases/tag/V4.0)
+  and place it in `v4/`. It runs through the block engine in `v4/stream.py` (80-sample / 5 ms blocks); wiring it
+  into `ml_denoiser_pipeline.py` is the next step, so the live pipeline below still uses v2.
+- **v2 (recommended for the live pipeline):** download `denoiser_v2.onnx` from [**Release V2.0**](../../releases/tag/V2.0) and place it in `v2/`, next to
   `ml_denoiser_pipeline.py`. Run the pipeline from `v2/`.
 - **v3 (experimental):** download `denoiser_v3.onnx` from [**Release V3.0**](../../releases/tag/V3.0) and place it in `v3/`.
   Run with `V3_PHASE=noisy` for the better-scoring mode (see Results).
@@ -268,6 +271,50 @@ segments, 60 epochs, model size ~3.8M parameters), so the comparison isolates th
 
 Parity check (numpy/ONNX path vs PyTorch training path): 133.5 dB.
 
+---
+
+### v4: streaming GRU, 10 ms latency, first version above the noisy input (code in [`v4/`](v4/))
+
+v4 drops the 200 ms-window U-Net for the causal streaming design built for the
+[DAW vocal denoiser](https://github.com/Stavion-Colquitt/daw-vocal-denoiser), retuned for 16 kHz calls:
+
+- **Asymmetric windows** (Wang et al. 2021): 32 ms analysis window for frequency resolution, 10 ms synthesis window
+  for latency, 5 ms hop. Algorithmic latency drops from ~200 ms to **10 ms**.
+- **2-layer GRU (256)** magnitude mask, 988k parameters: context comes from the GRU's memory instead of a long window.
+- **Noisy phase kept** (the v3 lesson).
+- **Compressed spectral loss** (Braun & Tashev, power 0.3) + multi-resolution STFT: tracks perceived quality better
+  than v2's SI-SDR objective. Loss is level-normalised; the model sees the real input level.
+- **Training data:** 60% VoiceBank-DEMAND **train** pairs (28 speakers; speakers p226/p287 held out as dev) + 40% DNS
+  speech + DNS noise mixed on the fly (SNR -5 to 20 dB, 5% clean-only). EMA weights, warmup + cosine LR, 4 s segments.
+- Trained on an RTX 2060 (26,208 steps, about 4 hours); the best dev checkpoint (step 26,000) was evaluated once.
+
+| Metric (VoiceBank-DEMAND test, 824 files, 16 kHz) | Noisy input | v2 | v3 (noisy phase) | **v4** |
+|--------|-------------|----|------------------|--------|
+| PESQ (WB) | 1.97 | 1.65 | 1.70 | **2.58 (+0.61)** |
+| STOI | 0.921 | 0.869 | 0.874 | **0.930 (+0.009)** |
+| SI-SDR (dB) | 8.45 | 13.36 | 13.17 | **17.21 (+8.76)** |
+| Algorithmic latency | | 200 ms | 200 ms | **10 ms** |
+| CPU per 5 ms block (ONNX Runtime) | | | | **0.15 ms** (real-time factor 0.03) |
+
+Streaming vs offline parity: 108.3 dB.
+
+**What v4 says:**
+- **It is the first version to beat the noisy input on every metric**, including PESQ, while cutting latency 20x.
+- **Fair-comparison note:** v1-v3 never saw VoiceBank-DEMAND; v4 trains on its *training* split (different speakers
+  from the test set, same recording setup and noise families). That is the standard protocol for this benchmark, and
+  closing that domain gap is a large part of the jump. The architecture, loss and latency changes are the other part;
+  separating the two is a clean follow-up ablation (v4 trained on DNS only).
+- For context, published lightweight causal models report roughly 2.8-3.0 PESQ on this benchmark, so v4 is in range
+  but not yet at the state of the art.
+
+**Reproduce:**
+```bash
+python v4/prep_vbd.py                       # unzip + resample VoiceBank-DEMAND (train + test) to 16 kHz
+python v4/train.py --hours 8                # or v4/run_v4_2060.ps1 for the whole unattended run
+python v4/export_onnx.py && python v4/check_parity.py
+python v4/eval_vbd.py                       # PESQ / STOI / SI-SDR on the 824 test files
+```
+
 ## Latency
 
 **Ongoing algorithmic latency: ~220ms**
@@ -373,13 +420,14 @@ minimum wait.
 - [x] Run PESQ/STOI/DNSMOS evaluation and publish scores
 - [x] v2: waveform loss, linear-magnitude mask, milder-SNR mixtures, inference-matched training
 - [x] v3: complex mask (phase): did not lift PESQ; v3's phase estimate hurts, its magnitude helps (see Results)
-- [ ] v4: a perceptual training objective and longer context (GRU) to lift PESQ above the noisy input
+- [x] v4: streaming GRU, compressed (perceptual) loss, in-domain training data: first version above the noisy input on PESQ (2.58 vs 1.97)
+- [ ] Wire the v4 streaming engine into `ml_denoiser_pipeline.py` (10 ms end to end instead of ~220 ms)
 - [ ] Fine-tune on domain-specific conference room noise
 - [ ] Complex-mask U-Net (DCUNet) to address phase reuse muffling
 - [ ] Voice Activity Detection (VAD) to replace RMS-based gate
 - [ ] INT8 quantization (ONNX Runtime) for lower inference latency
 - [ ] Mac/Linux shell launcher
-- [ ] DAW-optimized variant (<10ms latency target)
+- [x] DAW-optimized variant: [daw-vocal-denoiser](https://github.com/Stavion-Colquitt/daw-vocal-denoiser) (48 kHz, 10 ms latency)
 
 ---
 
