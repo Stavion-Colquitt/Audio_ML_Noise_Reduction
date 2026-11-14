@@ -1,5 +1,9 @@
 # Audio ML Noise Reduction
 
+> **AI disclosure:** This project was built with AI assistance (Claude, by Anthropic) for writing code and
+> documentation. All creative and technical decisions (model design, experiments, evaluation) are mine, and I
+> reviewed everything before publishing.
+
 > Real-time background noise suppression for Teams, Zoom, and any communication app.
 > Built from scratch — custom-trained U-Net model, ONNX inference, virtual audio routing.
 > No cloud. No subscription. Runs entirely on your machine.
