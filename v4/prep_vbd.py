@@ -7,7 +7,7 @@ import os, sys, zipfile, glob, numpy as np, soundfile as sf
 from scipy.signal import resample_poly
 from concurrent.futures import ProcessPoolExecutor
 
-ROOT = os.environ.get("VBD_ROOT", r"D:\Datasets\voicebank-demand")
+ROOT = os.environ.get("VBD_ROOT", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "voicebank-demand"))   # the downloaded zips
 OUT = os.path.join(ROOT, "16k")
 JOBS = [("clean_trainset_28spk_wav", "clean_train"), ("noisy_trainset_28spk_wav", "noisy_train"),
         ("clean_testset_wav", "clean_test"), ("noisy_testset_wav", "noisy_test")]

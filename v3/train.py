@@ -27,7 +27,7 @@ from model import UNetDenoiser, count_parameters
 from dataset import get_dataloaders, N_FFT, HOP_LENGTH, SNR_MIN_DB, SNR_MAX_DB, P_CLEAN_ONLY, SEG
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.environ.get("DNS_DATA", r"C:\Users\stavi\Projects\audio-ml-pipeline\data")   # reuse v1's download
+DATA_DIR = os.environ.get("DNS_DATA", os.path.join(HERE, "..", "data", "dns"))   # DNS Challenge: clean_fullband/ + noise_fullband/
 CLEAN_DIR, NOISE_DIR = os.path.join(DATA_DIR, "clean_fullband"), os.path.join(DATA_DIR, "noise_fullband")
 CKPT_DIR = os.path.join(HERE, "checkpoints"); os.makedirs(CKPT_DIR, exist_ok=True)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -481,6 +481,19 @@ minimum wait.
 
 ---
 
+## Data paths
+
+Data locations are environment variables with defaults inside the repo (`data/` is gitignored):
+
+| Variable | Default | What goes there |
+|----------|---------|-----------------|
+| `DNS_DATA` | `data/dns` | [DNS Challenge](https://github.com/microsoft/DNS-Challenge) fullband data: `clean_fullband/` and `noise_fullband/` (v3, v4) |
+| `VBD_ROOT` | `data/voicebank-demand` | The [VoiceBank-DEMAND](https://datashare.ed.ac.uk/handle/10283/2791) zips (v4 `prep_vbd.py` unzips and resamples them) |
+| `VBD16` | `data/voicebank-demand/16k` | The 16 kHz copy `prep_vbd.py` writes, used by v4 training and `eval_vbd.py` |
+
+PowerShell: `$env:DNS_DATA = "E:\my\dns"` (this shell) or `setx DNS_DATA "E:\my\dns"` (permanent).
+Linux/macOS: `export DNS_DATA=/my/dns`.
+
 ## License
 
 MIT

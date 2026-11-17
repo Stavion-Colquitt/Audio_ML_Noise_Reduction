@@ -1,0 +1,3 @@
+# local datasets (see README: Data paths)
+data/
+__pycache__/

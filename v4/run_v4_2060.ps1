@@ -8,7 +8,8 @@ $env:CUDA_VISIBLE_DEVICES = '0'
 $log = Join-Path $here 'run_v4.log'
 function Log($m) { "$(Get-Date -Format 'HH:mm:ss')  $m" | Out-File $log -Append }
 "v4 run started $(Get-Date)" | Out-File $log
-while (-not (Test-Path 'D:\Datasets\voicebank-demand\dl_done.txt')) { Start-Sleep 30 }
+$vbdRoot = if ($env:VBD_ROOT) { $env:VBD_ROOT } else { Join-Path $here '..\data\voicebank-demand' }
+while (-not (Test-Path (Join-Path $vbdRoot 'dl_done.txt'))) { Start-Sleep 30 }
 Log 'download finished; preparing 16 kHz data'
 py -3.12 prep_vbd.py 2>&1 | Out-File $log -Append
 py -3.12 dataset.py 2>&1 | Select-String -NotMatch 'Warning' | Out-File $log -Append

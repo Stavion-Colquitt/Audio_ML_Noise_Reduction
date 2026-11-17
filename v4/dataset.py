@@ -15,8 +15,8 @@ from torch.utils.data import Dataset, DataLoader
 
 SR = 16000
 SEG = 4 * SR
-VBD = os.environ.get("VBD16", r"D:\Datasets\voicebank-demand\16k")
-DNS = os.environ.get("DNS_DATA", r"C:\Users\stavi\Projects\audio-ml-pipeline\data")
+VBD = os.environ.get("VBD16", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "voicebank-demand", "16k"))   # made by prep_vbd.py
+DNS = os.environ.get("DNS_DATA", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "dns"))   # clean_fullband/ + noise_fullband/
 DEV_SPK = ("p226", "p287")
 P_VBD, P_CLEAN_ONLY = 0.60, 0.05
 

@@ -10,7 +10,7 @@ from pystoi import stoi
 from model import StreamDenoiser, enhance, SR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-VBD = os.environ.get("VBD16", r"D:\Datasets\voicebank-demand\16k")
+VBD = os.environ.get("VBD16", os.path.join(HERE, "..", "data", "voicebank-demand", "16k"))
 DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
