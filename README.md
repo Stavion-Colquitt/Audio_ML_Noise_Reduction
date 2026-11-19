@@ -8,6 +8,45 @@
 
 🎧 [Live demo](https://huggingface.co/spaces/Stavion-Colquitt/Realtime_Denoisers) · 📋 Part of the [Real-Time Audio Denoisers](https://github.com/users/Stavion-Colquitt/projects/2) project board, next to the DAW vocal denoisers ([v1](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser), [v1c](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser/tree/main/versions/v1c), [v1b](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser/tree/main/versions/v1b), [v1d](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser/tree/main/versions/v1d))
 
+**Real-time background-noise suppression for calls (Teams, Zoom, any app), running locally on your CPU.** The current
+version, **v4**, is a causal streaming GRU with **10 ms latency** that beats the noisy input on every metric of the
+VoiceBank-DEMAND benchmark (PESQ 1.97 â†’ 2.58, SI-SDR 8.45 â†’ 17.21 dB) at about 3% of one CPU core.
+
+| Version | What changed | Latency | PESQ-WB | STOI | SI-SDR (dB) | Code |
+|---|---|---|---|---|---|---|
+| Noisy input | | | 1.97 | 0.921 | 8.45 | |
+| v1 | U-Net on log spectrograms, SI-SNR loss | ~220 ms | 1.58 | 0.798 | 3.42 | [`audio-ml-pipeline-release/`](audio-ml-pipeline-release/) |
+| v2 | Loss on the waveform, linear-magnitude mask | ~220 ms | 1.65 | 0.869 | 13.36 | [`v2/`](v2/) |
+| v3 | Complex mask (phase): a negative result | ~220 ms | 1.70 | 0.874 | 13.17 | [`v3/`](v3/) |
+| **v4** | Streaming GRU, asymmetric windows, perceptual loss, in-domain data | **10 ms** | **2.58** | **0.930** | **17.21** | [`v4/`](v4/) |
+
+VoiceBank-DEMAND test set (824 files, 16 kHz); v3 in its better noisy-phase mode. What each version taught me is in
+[Results](#results) below.
+
+## Quick start: v4 live on a call
+
+1. `pip install numpy onnxruntime sounddevice` (no PyTorch needed to run it)
+2. Install a virtual audio cable: [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) (Windows, free) or
+   [BlackHole](https://existential.audio/blackhole/) (Mac, free).
+3. Download `call_denoiser_v4.onnx` from [Hugging Face](https://huggingface.co/Stavion-Colquitt/Call_Denoiser_V4) or
+   [Release V4.0](../../releases/tag/V4.0) into `v4/`.
+4. Run it:
+   ```bash
+   python v4/live.py --list                                   # find your mic and the cable
+   python v4/live.py --mic "Microphone" --out "CABLE Input"   # part of a name, or an index
+   python v4/live.py --mic "Microphone" --out "CABLE Input" --floor 0.05   # keep a little room sound
+   ```
+5. In Teams, Zoom or your DAW, choose **CABLE Output (VB-Audio Virtual Cable)** as the microphone.
+
+`v4/live.py` runs the same block engine as `v4/stream.py` (identical output, checked) in 5 ms model blocks.
+
+---
+
+## The original U-Net pipeline (v1-v3)
+
+Everything below this point describes how the project started: a U-Net with a 200 ms window, plus a DSP fallback.
+It still runs, and the write-ups of what each version taught me are kept as they were.
+
 > Real-time background noise suppression for Teams, Zoom, and any communication app.
 > Built from scratch — custom-trained U-Net model, ONNX inference, virtual audio routing.
 > No cloud. No subscription. Runs entirely on your machine.
@@ -58,7 +97,7 @@ eliminates resampling and the boundary artifacts it introduces.
 
 ---
 
-## Quick Start
+## Quick start: the v1/v2 pipeline
 
 **1. Install dependencies**
 ```bash
@@ -284,7 +323,7 @@ Parity check (numpy/ONNX path vs PyTorch training path): 133.5 dB.
 ### v4: streaming GRU, 10 ms latency, first version above the noisy input (code in [`v4/`](v4/))
 
 v4 drops the 200 ms-window U-Net for the causal streaming design built for the
-[DAW vocal denoiser](https://github.com/Stavion-Colquitt/daw-vocal-denoiser), retuned for 16 kHz calls:
+[DAW vocal denoiser](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser), retuned for 16 kHz calls:
 
 - **Asymmetric windows** (Wang et al. 2021): 32 ms analysis window for frequency resolution, 10 ms synthesis window
   for latency, 5 ms hop. Algorithmic latency drops from ~200 ms to **10 ms**.
@@ -429,13 +468,14 @@ minimum wait.
 - [x] v2: waveform loss, linear-magnitude mask, milder-SNR mixtures, inference-matched training
 - [x] v3: complex mask (phase): did not lift PESQ; v3's phase estimate hurts, its magnitude helps (see Results)
 - [x] v4: streaming GRU, compressed (perceptual) loss, in-domain training data: first version above the noisy input on PESQ (2.58 vs 1.97)
-- [ ] Wire the v4 streaming engine into `ml_denoiser_pipeline.py` (10 ms end to end instead of ~220 ms)
+- [x] Run v4 live: `v4/live.py` (mic -> 10 ms streaming GRU -> virtual cable)
+- [ ] Call Denoiser v5: lookahead, more data, longer training (see the [project board](https://github.com/users/Stavion-Colquitt/projects/2))
 - [ ] Fine-tune on domain-specific conference room noise
 - [ ] Complex-mask U-Net (DCUNet) to address phase reuse muffling
 - [ ] Voice Activity Detection (VAD) to replace RMS-based gate
 - [ ] INT8 quantization (ONNX Runtime) for lower inference latency
 - [ ] Mac/Linux shell launcher
-- [x] DAW-optimized variant: [daw-vocal-denoiser](https://github.com/Stavion-Colquitt/daw-vocal-denoiser) (48 kHz, 10 ms latency)
+- [x] DAW-optimized variant: [Daw-Vocal-Denoiser](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser) (48 kHz, 10 ms latency; v1, v1c, v1b, v1d)
 
 ---
 
@@ -443,7 +483,9 @@ minimum wait.
 
 | File | Description |
 |------|-------------|
-| `ml_denoiser_pipeline.py` | **Main pipeline** — real-time inference, OLA, EQ, gate |
+| `v4/live.py` | **v4 live pipeline**: mic -> 10 ms streaming GRU -> virtual cable |
+| `v4/stream.py` | v4 block engine (numpy + onnxruntime) |
+| `ml_denoiser_pipeline.py` | v1/v2 pipeline - real-time inference, OLA, EQ, gate |
 | `dsp_filter_pipeline.py` | Fallback — high-pass filter + gate, no model needed |
 | `model.py` | U-Net architecture |
 | `dataset.py` | DNS Challenge loader with dynamic SNR mixing |
