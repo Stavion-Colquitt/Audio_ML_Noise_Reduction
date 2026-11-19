@@ -6,6 +6,8 @@
 
 🤗 [Model on Hugging Face](https://huggingface.co/Stavion-Colquitt/Call_Denoiser_V4)
 
+🎧 [Live demo](https://huggingface.co/spaces/Stavion-Colquitt/Realtime_Denoisers) · 📋 Part of the [Real-Time Audio Denoisers](https://github.com/users/Stavion-Colquitt/projects/2) project board, next to the DAW vocal denoisers ([v1](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser), [v1c](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser-v1c), [v1b](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser-v1b), [v1d](https://github.com/Stavion-Colquitt/Daw-Vocal-Denoiser-v1d))
+
 > Real-time background noise suppression for Teams, Zoom, and any communication app.
 > Built from scratch — custom-trained U-Net model, ONNX inference, virtual audio routing.
 > No cloud. No subscription. Runs entirely on your machine.
