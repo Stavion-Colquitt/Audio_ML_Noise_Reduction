@@ -7,9 +7,24 @@ same math as model.analysis/synthesis (check_parity.py confirms it), i.e. what a
     eng = StreamEngine(); y_block = eng.process(x_block)   # x_block: float32[80]
 """
 import os, numpy as np, onnxruntime as ort
-from model import windows, K, M, SR
 
-ONNX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "call_denoiser_v4.onnx")
+SR, K, M, D_ZEROS = 16000, 512, 80, 21          # sample rate, analysis length, hop, leading zeros (same as model.py)
+
+
+def windows():
+    """Asymmetric analysis/synthesis pair (same formula as model.windows): analysis * synthesis = Hann(2M) on the
+    last 2M samples. Defined here so the live engine needs only numpy + onnxruntime (no PyTorch)."""
+    def hann(n): return 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n) / n)
+    L = 2 * (K - M - D_ZEROS); hL, h2M = hann(L), hann(2 * M)
+    wa = np.zeros(K); ws = np.zeros(K)
+    wa[D_ZEROS:K - M] = np.sqrt(hL[: K - M - D_ZEROS])
+    wa[K - M:] = np.sqrt(h2M[M:])
+    seg = slice(K - 2 * M, K - M)
+    ws[seg] = h2M[:M] / np.maximum(wa[seg], 1e-12)
+    ws[K - M:] = np.sqrt(h2M[M:])
+    return wa, ws
+
+ONNX = os.environ.get("CALL_DENOISER_ONNX") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "call_denoiser_v4.onnx")
 HOP = M
 
 
